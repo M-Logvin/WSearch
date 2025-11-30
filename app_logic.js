@@ -1,21 +1,35 @@
-// 1. Import all needed constants from the data file
-import { 
-    ALL_GUESSES_FLAT, N_TOTAL_GUESSES, N_CANDIDATE_ANSWERS, 
-    INITIAL_CANDIDATE_START_POSITIONS, IS_POSSIBLE_ANSWER_MASK, LETTERS 
-} from './wordle_solver_data.js';
+// app_logic.js
 
-// 2. Import the WASM module
-import createModule from './wordle_solver.js';
-
-// --- Global Constants & State ---
+import createModule from './wordle_solver.js'; 
 let Module; 
 
-createModule().then(wasmModule => {
+createModule({
+    // 1. Pass a configuration object to the module function
+    onRuntimeInitialized: function() {
+        // 3. This function executes ONLY after HEAP views are ready!
+        initializeApp();
+    }
+}).then(wasmModule => {
+    // 2. The promise resolves when the WASM is ready, but views might be pending
     Module = wasmModule; 
-    initializeApp();
 }).catch(error => {
-    console.error("Failed to load WASM module:", error);
+    console.error("WASM Module Load Failed:", error);
+    // Handle error display
 });
+
+
+function initializeApp() {
+    // Check if HEAP32 is now available before starting memory allocation
+    if (!Module.HEAP32) {
+        console.error("FATAL: HEAP32 view still undefined after runtime initialization.");
+        return;
+    }
+    
+    // Continue with your code that failed:
+    initializeWasmMemory(); 
+
+    // ... rest of initializeApp ...
+}
 
 // State Variables (replicate Shiny's rv)
 const STATE = {
