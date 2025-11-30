@@ -1,29 +1,11 @@
-// app_logic.js
+// app_logic.js (Start of file)
 
 import createModule from './wordle_solver.js';
 let Module; // Global WASM Module reference
 
-// --- WASM Module Loading ---
-createModule({
-    // Pass the logic to run once everything is loaded
-    onRuntimeInitialized: function() {
-        // This hook should be empty, or just call runInitialization
-    }
-}).then(wasmModule => {
-    // 1. Assign the WASM instance to the global Module variable IMMEDIATELY.
-    Module = wasmModule; 
-    
-    // 2. NOW, run the initialization logic which depends on Module being set.
-    runInitialization(); 
-}).catch(error => {
-    console.error("WASM Module Load Failed:", error);
-    // Handle error display
-});
-
-// The definition of runInitialization MUST be changed slightly.
+// --- Core Initialization Logic ---
 const runInitialization = () => {
-    // REMOVE the previous defensive check: if (!Module.HEAP32) { ... }
-    // It's no longer necessary because we are guaranteed to be inside the .then() block.
+    // We are now guaranteed that Module is defined and HEAP32 is attached.
     
     initializeWasmMemory(); 
     updateGuessDisplay(); 
@@ -32,6 +14,22 @@ const runInitialization = () => {
     
     console.log("WASM Memory initialized. App is running.");
 };
+
+// --- WASM Module Loading ---
+createModule({
+    // THE FIX: This object is now empty. The glue code will not call any hooks.
+}).then(wasmModule => {
+    // 1. Assign the WASM instance to the global Module variable.
+    Module = wasmModule; 
+    
+    // 2. NOW, run the initialization logic.
+    runInitialization(); 
+}).catch(error => {
+    console.error("WASM Module Load Failed:", error);
+    // Handle error display
+});
+
+// ... (Rest of your app_logic.js file: STATE, functions, etc.)
 
 // State Variables (replicate Shiny's rv)
 const STATE = {
