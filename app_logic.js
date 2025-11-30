@@ -1,12 +1,13 @@
 // --- Global Constants & State ---
 import createModule from './wordle_solver.js'; 
+// The Emscripten Module object (defined in wordle_solver.js)
+let Module; 
 // Now call it
 createModule().then(wasmModule => {
     Module = wasmModule; // Assuming you still use the global 'Module' variable
     initializeApp();
 });
-// The Emscripten Module object (defined in wordle_solver.js)
-let Module; 
+
 
 // State Variables (replicate Shiny's rv)
 const STATE = {
