@@ -1,13 +1,21 @@
-// --- Global Constants & State ---
-import createModule from './wordle_solver.js'; 
-// The Emscripten Module object (defined in wordle_solver.js)
-let Module; 
-// Now call it
-createModule().then(wasmModule => {
-    Module = wasmModule; // Assuming you still use the global 'Module' variable
-    initializeApp();
-});
+// 1. Import all needed constants from the data file
+import { 
+    ALL_GUESSES_FLAT, N_TOTAL_GUESSES, N_CANDIDATE_ANSWERS, 
+    INITIAL_CANDIDATE_START_POSITIONS, IS_POSSIBLE_ANSWER_MASK, LETTERS 
+} from './wordle_solver_data.js';
 
+// 2. Import the WASM module
+import createModule from './wordle_solver.js';
+
+// --- Global Constants & State ---
+let Module; 
+
+createModule().then(wasmModule => {
+    Module = wasmModule; 
+    initializeApp();
+}).catch(error => {
+    console.error("Failed to load WASM module:", error);
+});
 
 // State Variables (replicate Shiny's rv)
 const STATE = {
