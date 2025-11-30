@@ -3,10 +3,6 @@
 // The Emscripten Module object (defined in wordle_solver.js)
 let Module; 
 
-// A=1, B=2, ... Z=26
-const LETTERS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ'; 
-const MAX_CANDIDATES = N_CANDIDATE_ANSWERS; // From wordle_solver_data.js
-
 // State Variables (replicate Shiny's rv)
 const STATE = {
     // Array of integers (start positions in ALL_GUESSES_FLAT)
