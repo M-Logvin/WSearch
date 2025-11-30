@@ -225,27 +225,6 @@ async function calculateBestGuess() {
 
 // --- UI Rendering Functions ---
 
-function updateGuessDisplay() {
-    const displayDiv = document.getElementById('guess-display');
-    displayDiv.innerHTML = '';
-    
-    if (STATE.gameOver) {
-        displayDiv.innerHTML = `<h2 style="color:#6aaa64;">Game Over!</h2>`;
-        return;
-    }
-
-    for (let i = 0; i < 5; i++) {
-        const letter = STATE.currentGuessWord[i];
-        const color = STATE.feedbackState[i];
-        const tile = document.createElement('div');
-        tile.className = `guess-tile ${color === '_' ? 'gray' : color === 'Y' ? 'yellow' : 'green'}`;
-        tile.textContent = letter;
-        tile.dataset.index = i; // Store index for event listener
-        tile.addEventListener('click', handleTileClick);
-        displayDiv.appendChild(tile);
-    }
-}
-
 function updateStatusDisplay() {
     const statusDiv = document.getElementById('status-text');
     const n = STATE.currentCandidates.length;
@@ -290,7 +269,18 @@ function handleTileClick(event) {
     event.target.className = `guess-tile ${newColor === '_' ? 'gray' : newColor === 'Y' ? 'yellow' : 'green'}`;
 }
 
-async function handleSubmitFeedback() {
+// app_logic.js (Updated sections for handleSubmitFeedback and handleResetApp)
+
+async function handleSubmitFeedback(event) {
+    // Check if event is passed (from keyboard) and if it's the Enter key
+    if (event && event.key && event.key !== 'Enter') return; 
+
+    // Ensure WASM Module is fully ready (safety check, though initialized in runInitialization)
+    if (!Module || !Module.HEAP32) {
+        console.warn("WASM not fully initialized. Blocking submit attempt.");
+        return; 
+    }
+
     if (STATE.gameOver || STATE.isCalculating) return;
 
     // 1. Record History
@@ -299,11 +289,12 @@ async function handleSubmitFeedback() {
         fb: [...STATE.feedbackState] // Copy the array
     });
 
-    // 2. Check Win
+    // 2. Check Win (User marked all Green)
     if (STATE.feedbackState.every(c => c === 'G')) {
         STATE.gameOver = true;
         updateGuessDisplay();
         updateHistoryDisplay();
+        updateStatusDisplay('Solved!'); 
         return;
     }
 
@@ -323,10 +314,31 @@ async function handleSubmitFeedback() {
         WASM_PTR.currentCandidatesB // Write results into buffer B
     );
 
-    // 4. Update Candidate State
+    // 4. Update Candidate State and Handle Game End Conditions
+
     if (remainingCount === 0) {
+        // 🛑 ERROR STATE (0 words left)
         STATE.gameOver = true;
+        STATE.currentGuessWord = "ERROR"; // Identifier for the display logic
+        STATE.feedbackState = ["E", "R", "R", "O", "R"]; // Custom color key for Red (We will map 'E', 'R', 'O' to red in updateGuessDisplay)
+        updateStatusDisplay('Error: No words match this pattern.');
+
+    } else if (remainingCount === 1) {
+        // ✅ SUCCESS STATE (1 word left)
+        STATE.gameOver = true;
+        
+        // Read the final word to update STATE.currentGuessWord
+        const finalWordIndex = new Int32Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, 1)[0];
+        const wordStartPos = finalWordIndex * 5;
+        const wordInts = new Int32Array(Module.HEAP32.buffer, WASM_PTR.guessesFlat + wordStartPos * 4, 5);
+        STATE.currentGuessWord = intVecToString(wordInts);
+        
+        // Set feedback state to Green for the visual effect
+        STATE.feedbackState = ["G", "G", "G", "G", "G"]; 
+        updateStatusDisplay(`Solved! The word is: ${STATE.currentGuessWord}`);
+
     } else {
+        // 🔄 CONTINUE STATE (2+ words left)
         // Read the new indices from Buffer B
         const newCandidatesIndices = new Int32Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, remainingCount);
         STATE.currentCandidates = Array.from(newCandidatesIndices);
@@ -336,13 +348,18 @@ async function handleSubmitFeedback() {
 
         // 5. Calculate Next Guess
         await calculateBestGuess();
+        
+        // Reset UI State (Only if continuing)
+        STATE.feedbackState = ["_", "_", "_", "_", "_"];
     }
 
-    // 6. Reset UI State
-    STATE.feedbackState = ["_", "_", "_", "_", "_"];
+    // 6. Update Displays (Runs regardless of game over state)
     updateGuessDisplay();
     updateHistoryDisplay();
-    updateStatusDisplay();
+    // If a custom message was set above, updateStatusDisplay() without arguments will use it.
+    if (!STATE.gameOver) {
+        updateStatusDisplay();
+    }
 }
 
 function handleResetApp() {
@@ -359,6 +376,43 @@ function handleResetApp() {
     updateGuessDisplay();
     updateHistoryDisplay();
     updateStatusDisplay();
+}
+
+// ...
+
+function updateGuessDisplay() {
+    const displayDiv = document.getElementById('guess-display');
+    displayDiv.innerHTML = '';
+    
+    // REMOVE the previous logic that replaced tiles with "Game Over!" text.
+
+    for (let i = 0; i < 5; i++) {
+        let letter = STATE.currentGuessWord[i];
+        let colorKey = STATE.feedbackState[i];
+        let cssClass;
+
+        // Determine the CSS class based on the state
+        if (STATE.gameOver && STATE.currentGuessWord === "ERROR") {
+            // Force Red color and use the word "ERROR" as the text
+            cssClass = 'red'; 
+            letter = "ERROR"[i]; 
+        } else {
+            // Use existing logic for ongoing game, solved game, or final guess
+            cssClass = colorKey === '_' ? 'gray' : colorKey === 'Y' ? 'yellow' : 'green';
+        }
+        
+        const tile = document.createElement('div');
+        tile.className = `guess-tile ${cssClass}`;
+        tile.textContent = letter;
+        
+        // Only attach click listeners if the game is NOT over or if it's the ERROR state (to allow reset)
+        if (!STATE.gameOver) {
+            tile.dataset.index = i; // Store index for event listener
+            tile.addEventListener('click', handleTileClick);
+        }
+        
+        displayDiv.appendChild(tile);
+    }
 }
 
 // --- Initialization ---
