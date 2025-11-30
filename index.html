@@ -229,10 +229,11 @@
         <div id="history-display"></div>
     </div>
 
-    <!-- Ensure wordle_solver.js is available in the environment for the WASM Module -->
+    <!-- 1. WASM Glue Code MUST be loaded first to define the global 'Module' object -->
     <script src="wordle_solver.js"></script> 
 
-    <script type="module">
+    <!-- 2. Application Logic (standard script tag to access global 'Module') -->
+    <script>
         // --- GLOBAL STATE ---
         const INITIAL_CANDIDATE_START_POSITIONS = new Array(2315).fill(0).map((_, i) => i); // indices 0 to 2314
         
@@ -259,7 +260,6 @@
         const statusText = document.getElementById('status-text');
         const submitButton = document.getElementById('submit-feedback');
         const resetButton = document.getElementById('reset-app');
-        // Removed: llmExplanationDiv, explainButton
 
         // --- APPLICATION LOGIC FUNCTIONS ---
 
@@ -464,8 +464,10 @@
         async function handleSubmitFeedback(event) {
             if (event && event.key && event.key !== 'Enter') return; 
 
-            if (!Module || !Module.HEAP32) {
-                console.warn("WASM not fully initialized. Blocking submit attempt.");
+            // IMPORTANT CHECK: Ensure Module and Heap are available before proceeding
+            if (typeof Module === 'undefined' || typeof Module.HEAP32 === 'undefined') {
+                console.warn("WASM not initialized. Blocking submit attempt.");
+                updateStatusDisplay('Error: WASM not ready.');
                 return; 
             }
 
@@ -519,7 +521,7 @@
                 STATE.gameOver = true;
                 
                 // Read the final word
-                const finalWordIndex = new Int32Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, 1)[0];
+                const finalWordIndex = new Int34Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, 1)[0];
                 const wordStartPos = finalWordIndex * 5;
                 const wordInts = new Int32Array(Module.HEAP32.buffer, WASM_PTR.guessesFlat + wordStartPos * 4, 5);
                 STATE.currentGuessWord = intVecToString(wordInts);
@@ -566,7 +568,7 @@
             STATE.isCalculating = false;
 
             // Copy initial candidates into WASM heap A
-            if (Module && WASM_PTR.currentCandidatesA) {
+            if (typeof Module !== 'undefined' && WASM_PTR.currentCandidatesA) {
                  Module.HEAP32.set(STATE.currentCandidates, WASM_PTR.currentCandidatesA / 4);
             }
 
@@ -575,7 +577,6 @@
             updateStatusDisplay(`Candidates remaining: ${STATE.currentCandidates.length}`);
         }
         
-        // Removed: handleExplainStrategy function
 
         // --- WASM INITIALIZATION ---
 
@@ -626,7 +627,6 @@
             // 4. Attach Event Listeners
             submitButton.addEventListener('click', handleSubmitFeedback);
             resetButton.addEventListener('click', handleResetApp);
-            // Removed: explainButton event listener
             document.addEventListener('keydown', handleSubmitFeedback); // Enable Enter key submission
             
             // Initial UI Setup (Loading state)
@@ -634,12 +634,14 @@
             updateStatusDisplay();
         }
 
-        // This global Module object is provided by the external 'wordle_solver.js' Emscripten file.
-        // We wait for it to be ready.
-        if (typeof Module !== 'undefined' && Module.calledRun) {
-            runInitialization();
-        } else if (typeof Module !== 'undefined') {
-            Module.onRuntimeInitialized = runInitialization;
+        // The WASM glue code (wordle_solver.js) defines the global 'Module'.
+        // We wait for its onRuntimeInitialized event to fire before starting our app logic.
+        if (typeof Module !== 'undefined') {
+            if (Module.calledRun) {
+                runInitialization();
+            } else {
+                Module.onRuntimeInitialized = runInitialization;
+            }
         } else {
              console.error("WASM Module object not found. Ensure wordle_solver.js is loaded.");
              statusText.textContent = "Error: WASM not found. Check Console.";
