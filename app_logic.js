@@ -21,6 +21,12 @@ const runInitialization = () => {
     // Attach event listeners to buttons
     document.getElementById('submit-feedback')?.addEventListener('click', handleSubmitFeedback);
     document.getElementById('reset-app')?.addEventListener('click', handleResetApp);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Prevents default browser behavior (e.g., form submission)
+            handleSubmitFeedback(event);
+        }
+    });
     console.log("WASM Memory initialized. App is running.");
 };
 
