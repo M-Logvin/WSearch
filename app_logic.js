@@ -1,6 +1,12 @@
 // app_logic.js (Start of file)
 
 import createModule from './wordle_solver.js';
+import { 
+    ALL_GUESSES_FLAT, 
+    N_TOTAL_GUESSES, 
+    IS_POSSIBLE_ANSWER_MASK, 
+    INITIAL_CANDIDATE_START_POSITIONS 
+} from './wordle_solver_data.js';
 let Module; // Global WASM Module reference
 
 // --- Core Initialization Logic ---
