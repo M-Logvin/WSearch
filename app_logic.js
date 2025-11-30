@@ -1,39 +1,37 @@
 // app_logic.js
 
 import createModule from './wordle_solver.js';
-let Module;
-
-// --- Core Initialization Logic ---
-// Define the memory and setup function directly.
-const runInitialization = () => {
-    // 1. Check if HEAP32 is now available (requires the fix in wordle_solver.js)
-    if (!Module.HEAP32) {
-        console.error("FATAL: HEAP32 view still undefined after runtime initialization.");
-        return;
-    }
-    
-    // 2. The original logic from initializeApp() goes here:
-    initializeWasmMemory(); 
-    
-    // 3. Add other necessary calls that used to be in initializeApp(), 
-    //    like updating the UI or starting the first calculation.
-    // e.g., updateGuessDisplay();
-    // e.g., calculateBestGuess(); 
-    
-    console.log("WASM Memory initialized. App is running.");
-};
+let Module; // Global WASM Module reference
 
 // --- WASM Module Loading ---
 createModule({
-    // 1. Pass a configuration object to the module function
-    onRuntimeInitialized: runInitialization
+    // Pass the logic to run once everything is loaded
+    onRuntimeInitialized: function() {
+        // This hook should be empty, or just call runInitialization
+    }
 }).then(wasmModule => {
-    // 2. The promise resolves when the WASM is ready
-    Module = wasmModule;
+    // 1. Assign the WASM instance to the global Module variable IMMEDIATELY.
+    Module = wasmModule; 
+    
+    // 2. NOW, run the initialization logic which depends on Module being set.
+    runInitialization(); 
 }).catch(error => {
     console.error("WASM Module Load Failed:", error);
     // Handle error display
 });
+
+// The definition of runInitialization MUST be changed slightly.
+const runInitialization = () => {
+    // REMOVE the previous defensive check: if (!Module.HEAP32) { ... }
+    // It's no longer necessary because we are guaranteed to be inside the .then() block.
+    
+    initializeWasmMemory(); 
+    updateGuessDisplay(); 
+    calculateBestGuess(); 
+    updateStatusDisplay();
+    
+    console.log("WASM Memory initialized. App is running.");
+};
 
 // State Variables (replicate Shiny's rv)
 const STATE = {
