@@ -82,12 +82,11 @@
             border: none;
             cursor: pointer;
             
-            /* Match line-height to height for vertical centering */
-            line-height: 15vw; 
-            max-height: 60px;
+            /* --- FIX: Removed line-height and replaced with Flexbox properties --- */
+            display: flex;
+            align-items: center; /* Centers vertically */
+            justify-content: center; /* Centers horizontally */
             
-            text-align: center; 
-            display: inline-block; 
             user-select: none;
             transition: transform 0.2s, box-shadow 0.2s, background 0.5s;
             background: linear-gradient(135deg, #787c7e, #787c7e); /* default gray */
