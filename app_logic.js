@@ -1,5 +1,10 @@
 // --- Global Constants & State ---
-
+import createModule from './wordle_solver.js'; 
+// Now call it
+createModule().then(wasmModule => {
+    Module = wasmModule; // Assuming you still use the global 'Module' variable
+    initializeApp();
+});
 // The Emscripten Module object (defined in wordle_solver.js)
 let Module; 
 
@@ -376,18 +381,4 @@ function initializeApp() {
     
     // Calculate the first guess automatically (SOARE is the fast return, let's calculate the real one)
     calculateBestGuess();
-}
-
-// Emscripten hook: This function runs once the WASM module is fully loaded and ready.
-// Note: This must be registered BEFORE the Emscripten script (wordle_solver.js) is loaded.
-if (typeof createWordleSolverModule === 'function') {
-    createWordleSolverModule().then(wasmModule => {
-        Module = wasmModule;
-        initializeApp();
-    });
-} else {
-    // Fallback if the module name is different (e.g., just Module)
-    if (typeof Module !== 'undefined' && Module.onRuntimeInitialized) {
-        Module.onRuntimeInitialized = initializeApp;
-    }
 }
