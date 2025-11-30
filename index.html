@@ -16,13 +16,13 @@ body {
 }
 
 #app {
-    display: inline-block;      
-    padding: 30px;              
+    display: inline-block;        
+    padding: 30px;                
     background-color: white;
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    margin: 20px auto;          
-    text-align: center;           
+    margin: 20px auto;            
+    text-align: center;            
 }
 
 /* Headings */
@@ -46,7 +46,7 @@ h2, h3 {
     flex-wrap: wrap; /* Allow tiles to wrap if needed */
     align-items: center;
     justify-content: flex-start;
-}        
+}            
 
 /* Wordle Tiles with Gradient Animation */
 .guess-tile { 
@@ -97,31 +97,15 @@ h2, h3 {
     100% { background-position: 0% 0%; }
 }
 
-/* Placeholder tiles for empty guess-display container */
-#guess-display:empty::before {
-    content: "□□□□□"; /* 5 placeholder squares */
-    display: flex;
-    gap: 4px;
-    justify-content: flex-start;
+/* 🛑 NEW/MODIFIED: Style for the non-interactive loading placeholder */
+.guess-tile.initial-load {
+    background-color: #d3d6da; /* Lighter gray for 'loading' */
+    cursor: default;
+    animation: none; /* Disable animation during load for stability */
 }
+/* 🛑 DELETED: Placeholder styles that rely on :empty::before are removed */
 
-#guess-display:empty::before span {
-    width: 60px;
-    height: 60px;
-    display: inline-block;
-    margin: 4px;
-    border-radius: 12px;
-    background-color: #ddd; /* light grey */
-    animation: pulse 1.5s infinite ease-in-out;
-}
 
-/* Pulse animation */
-@keyframes pulse {
-    0% { background-color: #e0e0e0; }
-    50% { background-color: #d0d0d0; }
-    100% { background-color: #e0e0e0; }
-}
-        
 /* Buttons */
 button {
     border: none;
@@ -185,7 +169,12 @@ hr {
         
         <h2>Recommended Guess:</h2>
         <div id="guess-display">
-            </div>
+            <div class="guess-tile initial-load"></div>
+            <div class="guess-tile initial-load"></div>
+            <div class="guess-tile initial-load"></div>
+            <div class="guess-tile initial-load"></div>
+            <div class="guess-tile initial-load"></div>
+        </div>
         
         <div style="margin-top: 15px;">
             <button id="submit-feedback" class="btn-primary">Submit Pattern</button>
@@ -200,7 +189,6 @@ hr {
     </div>
 
     <script type="module" src="wordle_solver.js"></script>
-
     <script type="module" src="app_logic.js"></script>
 </body>
 </html>
