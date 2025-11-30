@@ -5,7 +5,8 @@ import {
     ALL_GUESSES_FLAT, 
     N_TOTAL_GUESSES, 
     IS_POSSIBLE_ANSWER_MASK, 
-    INITIAL_CANDIDATE_START_POSITIONS 
+    INITIAL_CANDIDATE_START_POSITIONS,
+    LETTERS
 } from './wordle_solver_data.js';
 let Module; // Global WASM Module reference
 
