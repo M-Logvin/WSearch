@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WASM Wordle Solver</title>
+    <title>Wordle Solver</title>
     <style>
        /* Global Styles */
 body {
@@ -97,13 +97,25 @@ h2, h3 {
     100% { background-position: 0% 0%; }
 }
 
-.guess-tile.placeholder {
-    background-color: #ddd;       /* Light grey */
-    color: transparent;           /* Hide letters */
-    animation: pulse 1.5s infinite ease-in-out;
-    cursor: default;
+/* Placeholder tiles for empty guess-display container */
+#guess-display:empty::before {
+    content: "□□□□□"; /* 5 placeholder squares */
+    display: flex;
+    gap: 4px;
+    justify-content: flex-start;
 }
 
+#guess-display:empty::before span {
+    width: 60px;
+    height: 60px;
+    display: inline-block;
+    margin: 4px;
+    border-radius: 12px;
+    background-color: #ddd; /* light grey */
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Pulse animation */
 @keyframes pulse {
     0% { background-color: #e0e0e0; }
     50% { background-color: #d0d0d0; }
