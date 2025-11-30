@@ -37,7 +37,16 @@ h2, h3 {
     margin-top: 20px;
 }
 
-/* Wordle Tiles */
+#guess-display {
+    min-height: 70px; /* Adjust based on tile height + margin */
+    display: flex;
+    gap: 4px; /* Optional spacing between tiles */
+    flex-wrap: wrap; /* Allow tiles to wrap if needed */
+    align-items: center;
+    justify-content: flex-start;
+}        
+
+/* Wordle Tiles with Gradient Animation */
 .guess-tile { 
     width: 60px;
     height: 60px;
@@ -52,17 +61,39 @@ h2, h3 {
     text-align: center; 
     display: inline-block; 
     user-select: none;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.5s;
+    background: linear-gradient(135deg, #787c7e, #787c7e); /* default gray */
+    background-size: 200% 200%;
 }
 
+/* Hover effect */
 .guess-tile:hover {
     transform: translateY(-3px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
-.gray { background-color: #787c7e; }
-.yellow { background-color: #c9b458; }
-.green { background-color: #6aaa64; }
+/* Animated color states */
+.gray {
+    background: linear-gradient(135deg, #787c7e, #6e7073);
+    animation: tileGradient 3s ease infinite alternate;
+}
+
+.yellow {
+    background: linear-gradient(135deg, #c9b458, #d1c066);
+    animation: tileGradient 3s ease infinite alternate;
+}
+
+.green {
+    background: linear-gradient(135deg, #6aaa64, #81c784);
+    animation: tileGradient 3s ease infinite alternate;
+}
+
+/* Gradient animation keyframes */
+@keyframes tileGradient {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}
 
 /* Buttons */
 button {
