@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Preload WASM file is kept to ensure fast loading of the solver engine -->
     <link rel="preload" href="wordle_solver.wasm" as="fetch" crossorigin="anonymous">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,6 @@
     <style>
         /* Global Styles */
         :root {
-            /* Define a consistent base size */
             font-size: 16px; 
         }
 
@@ -17,27 +17,27 @@
             background-color: #f4f4f9;
             color: #333;
             margin: 0;
-            padding: 1.25rem; /* 20px / 16px = 1.25rem */
+            padding: 0; 
             text-align: center;
+            overflow-x: hidden; /* Prevent horizontal scroll on mobile */
         }
 
         #app {
             display: flex;
-            flex-direction: column; /* Stack elements vertically */
-            align-items: center; /* Center content horizontally */
-            padding: 1.5rem; /* 30px */
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem; 
             max-width: 90vw;
-            min-width: 300px; /* Ensure a minimum size on very small screens */
+            min-width: 300px;
             background-color: white;
             border-radius: 1rem;
-            box-shadow: 0 0.625rem 1.5625rem rgba(0,0,0,0.1); /* 10px 25px */
-            margin: 1.25rem auto; /* 20px */
+            box-shadow: 0 0.625rem 1.5625rem rgba(0,0,0,0.1);
+            margin: 1.25rem auto; 
             text-align: center;
         }
 
         /* Headings - Use fluid font sizing with clamp() for better control */
         h1 {
-            /* Min: 1.5rem, Preferred: 7vw, Max: 2.5rem */
             font-size: clamp(1.5rem, 7vw, 2.5rem); 
             font-weight: 700;
             color: #222;
@@ -52,54 +52,50 @@
         }
 
         #guess-display {
-            /* Use a flexible container */
             min-height: 5rem; 
             display: flex;
-            gap: 0.5vw; /* Relative gap spacing */
-            flex-wrap: nowrap; /* Prevent wrapping unless tiles are too large */
+            gap: 0.5vw;
+            flex-wrap: nowrap;
             align-items: center;
-            justify-content: center; /* Center the tiles within the display area */
-            width: 100%; /* Take full width of the app container */
+            justify-content: center;
+            width: 100%;
         }               
 
-        /* Wordle Tiles - CRITICAL: Use VW for adaptive sizing */
+        /* Wordle Tiles - CRITICAL: Use Flexbox for perfect vertical and horizontal centering */
         .guess-tile { 
-            /* 5 tiles + 4 gaps must fit within the viewport.
-               We use 15vw to give generous space on mobile. */
             width: 15vw;
             height: 15vw;
-            max-width: 60px; /* Cap size for large desktops */
+            max-width: 60px;
             max-height: 60px;
             
             font-weight: bold;
             color: white;
-            margin: 0 0.25rem; /* 4px margin, slightly reduced */
+            margin: 0 0.25rem; 
             
-            /* Fluid font size for the letter */
             font-size: clamp(1.5rem, 5vw, 2rem); 
             
             border-radius: 0.75rem;
             border: none;
             cursor: pointer;
             
-            /* --- FIX: Removed line-height and replaced with Flexbox properties --- */
+            /* Flexbox properties for centering the letter */
             display: flex;
-            align-items: center; /* Centers vertically */
-            justify-content: center; /* Centers horizontally */
+            align-items: center; 
+            justify-content: center; 
             
             user-select: none;
             transition: transform 0.2s, box-shadow 0.2s, background 0.5s;
-            background: linear-gradient(135deg, #787c7e, #787c7e); /* default gray */
+            background: linear-gradient(135deg, #787c7e, #787c7e);
             background-size: 200% 200%;
         }
 
         /* Hover effect */
         .guess-tile:hover {
-            transform: translateY(-0.1875rem); /* 3px */
-            box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.2); /* 4px 8px */
+            transform: translateY(-0.1875rem);
+            box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.2);
         }
 
-        /* Animated color states (Styles omitted for brevity, logic remains the same) */
+        /* Animated color states */
         .gray {
             background: linear-gradient(135deg, #787c7e, #6e7073);
             animation: tileGradient 3s ease infinite alternate;
@@ -132,11 +128,10 @@
             animation: none;
         }
 
-        /* Buttons - Also use VW for width and REM for height/font for scaling */
+        /* Buttons */
         button {
-            /* Target around 30vw on mobile, capped at 140px on desktop */
             width: clamp(25vw, 35vw, 140px); 
-            height: 2.5rem; /* 40px */
+            height: 2.5rem;
             font-weight: bold;
             color: white;
             margin: 0.25rem;
@@ -144,7 +139,7 @@
             border-radius: 0.75rem;
             border: none;
             cursor: pointer;
-            line-height: 2.5rem; /* Center the text vertically */
+            line-height: 2.5rem;
             text-align: center;
             user-select: none;
 
@@ -161,7 +156,7 @@
             box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.2); 
         }
 
-        /* Button styles (styles omitted for brevity, logic remains the same) */
+        /* Button styles */
         .btn-primary {
             background: linear-gradient(135deg, #6aaa64, #81c784);
             animation: tileGradient 3s ease infinite alternate;
@@ -183,23 +178,28 @@
             margin-top: 0.9375rem;
             font-weight: bold;
         }
-
+        
         /* Divider */
         hr {
             border: none;
             border-top: 1px solid #ddd;
             margin: 1.25rem 0;
-            width: 100%; /* Ensure divider spans the width */
+            width: 100%;
         }
 
         /* Layout for Buttons */
         #button-container {
             margin-top: 0.9375rem;
             display: flex;
-            justify-content: space-around; /* Use space-around for better separation */
+            justify-content: space-around;
             align-items: center;
             width: 100%;
-            max-width: 400px; /* Cap button container width to match tiles visually */
+            max-width: 400px;
+        }
+
+        .loading { 
+            opacity: 0.5; 
+            pointer-events: none; 
         }
     </style>
 </head>
@@ -209,7 +209,7 @@
         
         <h2>Recommended Guess:</h2>
         <div id="guess-display">
-            <!-- Tiles are generated dynamically by app_logic.js, these are placeholders -->
+            <!-- Initial tiles -->
             <div class="guess-tile initial-load">S</div>
             <div class="guess-tile initial-load">O</div>
             <div class="guess-tile initial-load">A</div>
@@ -217,12 +217,11 @@
             <div class="guess-tile initial-load">E</div>
         </div>
         
-        <!-- Updated the inline style to use a container div -->
         <div id="button-container">
             <button id="submit-feedback" class="btn-primary">Submit Pattern</button>
             <button id="reset-app">Reset Game</button>
         </div>
-        
+
         <div id="status-text">Candidates remaining: Calculating...</div>
         
         <hr>
@@ -230,7 +229,421 @@
         <div id="history-display"></div>
     </div>
 
-    <script type="module" src="wordle_solver.js"></script>
-    <script type="module" src="app_logic.js"></script>
+    <!-- Ensure wordle_solver.js is available in the environment for the WASM Module -->
+    <script src="wordle_solver.js"></script> 
+
+    <script type="module">
+        // --- GLOBAL STATE ---
+        const INITIAL_CANDIDATE_START_POSITIONS = new Array(2315).fill(0).map((_, i) => i); // indices 0 to 2314
+        
+        const STATE = {
+            currentCandidates: [...INITIAL_CANDIDATE_START_POSITIONS],
+            currentGuessWord: "SOARE",
+            feedbackState: ["_", "_", "_", "_", "_"], // G, Y, _, E, R
+            history: [],
+            gameOver: false,
+            isCalculating: true,
+        };
+
+        const WASM_PTR = {
+            guessWordVec: 0,
+            scoresVec: 0,
+            guessesFlat: 0,
+            currentCandidatesA: 0,
+            currentCandidatesB: 0,
+            numCandidates: 0,
+            numGuesses: 0,
+            alphabetSize: 0,
+        };
+
+        const statusText = document.getElementById('status-text');
+        const submitButton = document.getElementById('submit-feedback');
+        const resetButton = document.getElementById('reset-app');
+        // Removed: llmExplanationDiv, explainButton
+
+        // --- APPLICATION LOGIC FUNCTIONS ---
+
+        /**
+         * Encodes the feedback state (G, Y, _) into an integer pattern for WASM.
+         * @param {string[]} feedbackState 
+         * @returns {number}
+         */
+        function encodePattern(feedbackState) {
+            let pattern = 0;
+            for (let i = 0; i < 5; i++) {
+                let code;
+                switch (feedbackState[i]) {
+                    case 'G': code = 2; break; // Green
+                    case 'Y': code = 1; break; // Yellow
+                    case '_': code = 0; break; // Gray/Not present (Treat _ as gray for encoding)
+                    default: code = 0; // Should not happen
+                }
+                pattern += code * Math.pow(3, i);
+            }
+            return pattern;
+        }
+
+        /**
+         * Converts a 5-char string to a 5-int vector (ASCII codes).
+         * @param {string} word 
+         * @returns {Int32Array}
+         */
+        function stringToIntVec(word) {
+            return new Int32Array(Array.from(word).map(c => c.charCodeAt(0)));
+        }
+
+        /**
+         * Converts a 5-int vector (ASCII codes) to a 5-char string.
+         * @param {Int32Array} intVec 
+         * @returns {string}
+         */
+        function intVecToString(intVec) {
+            return String.fromCharCode(...Array.from(intVec));
+        }
+
+        /**
+         * Updates the status text.
+         * @param {string} [customMessage] - An optional message to override the default.
+         */
+        function updateStatusDisplay(customMessage) {
+            
+            // If a custom message is provided (for Win/Error), use it immediately.
+            if (customMessage) {
+                statusText.textContent = customMessage;
+                // Apply a distinct style (red for error, green for win)
+                statusText.style.color = customMessage.startsWith('Error') ? '#e74c3c' : '#6aaa64'; 
+                return;
+            }
+            
+            // --- Default Logic ---
+            statusText.style.color = '#555'; // Reset color for default status
+            const n = STATE.currentCandidates.length;
+            let text = `Candidates remaining: ${n}`;
+            
+            if (STATE.isCalculating) {
+                text = "Candidates remaining: Thinking...";
+            }
+            
+            statusText.textContent = text;
+        }
+
+        /**
+         * Renders the current guess tiles.
+         */
+        function updateGuessDisplay() {
+            const displayDiv = document.getElementById('guess-display');
+            displayDiv.innerHTML = '';
+            
+            for (let i = 0; i < 5; i++) {
+                let letter = STATE.currentGuessWord[i];
+                let colorKey = STATE.feedbackState[i];
+                let cssClass;
+
+                // Determine the CSS class based on the state
+                if (STATE.gameOver && STATE.currentGuessWord === "ERROR") {
+                    // Force Red color and use the word "ERROR" as the text
+                    cssClass = 'red'; 
+                    letter = "ERROR"[i]; 
+                } else {
+                    // Use existing logic for ongoing game, solved game, or final guess
+                    cssClass = colorKey === '_' ? 'gray' : colorKey === 'Y' ? 'yellow' : 'green';
+                }
+                
+                const tile = document.createElement('div');
+                tile.className = `guess-tile ${cssClass}`;
+                tile.textContent = letter;
+                
+                // Only attach click listeners if the game is NOT over
+                if (!STATE.gameOver) {
+                    tile.dataset.index = i; // Store index for event listener
+                    tile.addEventListener('click', handleTileClick);
+                }
+                
+                displayDiv.appendChild(tile);
+            }
+        }
+
+        /**
+         * Renders the game history.
+         */
+        function updateHistoryDisplay() {
+            const historyDiv = document.getElementById('history-display');
+            historyDiv.innerHTML = '';
+
+            STATE.history.forEach(entry => {
+                const historyEntry = document.createElement('div');
+                historyEntry.className = 'history-entry';
+                historyEntry.style.display = 'flex';
+                historyEntry.style.justifyContent = 'center';
+                historyEntry.style.margin = '5px 0';
+                
+                for (let i = 0; i < 5; i++) {
+                    const tile = document.createElement('div');
+                    let colorClass = entry.fb[i] === 'G' ? 'green' : entry.fb[i] === 'Y' ? 'yellow' : 'gray';
+                    tile.className = `guess-tile ${colorClass}`;
+                    tile.textContent = entry.word[i];
+                    tile.style.width = '35px';
+                    tile.style.height = '35px';
+                    tile.style.fontSize = '18px';
+                    tile.style.margin = '2px';
+                    tile.style.cursor = 'default';
+                    tile.style.transition = 'none'; 
+                    tile.style.animation = 'none';
+                    historyEntry.appendChild(tile);
+                }
+                historyDiv.appendChild(historyEntry);
+            });
+        }
+
+        /**
+         * Toggles the feedback state of a tile (Gray -> Yellow -> Green -> Gray).
+         * @param {Event} event 
+         */
+        function handleTileClick(event) {
+            if (STATE.gameOver) return;
+            const tile = event.target;
+            const index = parseInt(tile.dataset.index);
+            const currentState = STATE.feedbackState[index];
+            let nextState;
+
+            if (currentState === '_') nextState = 'Y';
+            else if (currentState === 'Y') nextState = 'G';
+            else nextState = '_';
+            
+            STATE.feedbackState[index] = nextState;
+            updateGuessDisplay();
+        }
+
+        /**
+         * Calls WASM to find the next best guess word.
+         */
+        async function calculateBestGuess() {
+            STATE.isCalculating = true;
+            document.body.classList.add('loading');
+            updateStatusDisplay(); // Show "Thinking..."
+
+            // 1. Calculate Scores
+            const oldCandCount = STATE.currentCandidates.length;
+
+            // Call C++: cpp_calculate_scores_wasm(guesses_ptr, cands_ptr, n_cands, scores_ptr)
+            Module._cpp_calculate_scores_wasm(
+                WASM_PTR.guessesFlat,
+                WASM_PTR.currentCandidatesA, oldCandCount,
+                WASM_PTR.scoresVec
+            );
+
+            // 2. Find Best Score (Max value)
+            const scores = new Int32Array(Module.HEAP32.buffer, WASM_PTR.scoresVec, WASM_PTR.numGuesses);
+            let bestScore = -1;
+            let bestIndex = -1;
+
+            // Iterate over all possible guesses to find the one with the maximum score
+            for (let i = 0; i < WASM_PTR.numGuesses; i++) {
+                if (scores[i] > bestScore) {
+                    bestScore = scores[i];
+                    bestIndex = i;
+                }
+            }
+
+            // 3. Update Guess Word
+            if (bestIndex !== -1) {
+                const wordStartPos = bestIndex * 5;
+                const wordInts = new Int32Array(Module.HEAP32.buffer, WASM_PTR.guessesFlat + wordStartPos * 4, 5);
+                STATE.currentGuessWord = intVecToString(wordInts);
+            } else {
+                STATE.currentGuessWord = "ERROR";
+            }
+
+            STATE.isCalculating = false;
+            document.body.classList.remove('loading');
+        }
+
+        /**
+         * Submits the current guess and filters the candidate list.
+         */
+        async function handleSubmitFeedback(event) {
+            if (event && event.key && event.key !== 'Enter') return; 
+
+            if (!Module || !Module.HEAP32) {
+                console.warn("WASM not fully initialized. Blocking submit attempt.");
+                return; 
+            }
+
+            if (STATE.gameOver || STATE.isCalculating) return;
+            
+            // Disable buttons during calculation
+            document.body.classList.add('loading');
+
+            // 1. Record History
+            STATE.history.push({ 
+                word: STATE.currentGuessWord, 
+                fb: [...STATE.feedbackState] // Copy the array
+            });
+
+            // 2. Check Win (User marked all Green)
+            if (STATE.feedbackState.every(c => c === 'G')) {
+                STATE.gameOver = true;
+                updateGuessDisplay();
+                updateHistoryDisplay();
+                updateStatusDisplay('Solved!'); 
+                document.body.classList.remove('loading');
+                return;
+            }
+
+            // 3. Filter Candidates
+            const patternInt = encodePattern(STATE.feedbackState);
+            const oldCandCount = STATE.currentCandidates.length;
+
+            // Allocate memory for the current guess word in 5-int form
+            const guessIntVec = stringToIntVec(STATE.currentGuessWord);
+            Module.HEAP32.set(guessIntVec, WASM_PTR.guessWordVec / 4);
+
+            // Call C++: cpp_filter_candidates_wasm(...)
+            const remainingCount = Module._cpp_filter_candidates_wasm(
+                WASM_PTR.guessWordVec, patternInt,
+                WASM_PTR.guessesFlat,
+                WASM_PTR.currentCandidatesA, oldCandCount,
+                WASM_PTR.currentCandidatesB // Write results into buffer B
+            );
+
+            // 4. Update Candidate State and Handle Game End Conditions
+            if (remainingCount === 0) {
+                // 🛑 ERROR STATE (0 words left)
+                STATE.gameOver = true;
+                STATE.currentGuessWord = "ERROR";
+                STATE.feedbackState = ["E", "R", "R", "O", "R"];
+                updateStatusDisplay('Error: No words match this pattern.');
+
+            } else if (remainingCount === 1) {
+                // ✅ SUCCESS STATE (1 word left)
+                STATE.gameOver = true;
+                
+                // Read the final word
+                const finalWordIndex = new Int32Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, 1)[0];
+                const wordStartPos = finalWordIndex * 5;
+                const wordInts = new Int32Array(Module.HEAP32.buffer, WASM_PTR.guessesFlat + wordStartPos * 4, 5);
+                STATE.currentGuessWord = intVecToString(wordInts);
+                
+                // Set feedback state to Green for the visual effect
+                STATE.feedbackState = ["G", "G", "G", "G", "G"]; 
+                updateStatusDisplay(`Solved! The word is: ${STATE.currentGuessWord}`);
+
+            } else {
+                // 🔄 CONTINUE STATE (2+ words left)
+                // Read the new indices from Buffer B
+                const newCandidatesIndices = new Int32Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, remainingCount);
+                STATE.currentCandidates = Array.from(newCandidatesIndices);
+                
+                // Swap buffers A and B for the next filter/score call
+                [WASM_PTR.currentCandidatesA, WASM_PTR.currentCandidatesB] = [WASM_PTR.currentCandidatesB, WASM_PTR.currentCandidatesA];
+
+                // 5. Calculate Next Guess
+                await calculateBestGuess();
+                
+                // Reset UI State (Only if continuing)
+                STATE.feedbackState = ["_", "_", "_", "_", "_"];
+            }
+
+            // 6. Update Displays (Runs regardless of game over state)
+            updateGuessDisplay();
+            updateHistoryDisplay();
+            if (!STATE.gameOver) {
+                updateStatusDisplay();
+            }
+            document.body.classList.remove('loading');
+        }
+
+        /**
+         * Resets the application state to the initial condition.
+         */
+        function handleResetApp() {
+            // Reset state to initial conditions
+            STATE.currentCandidates = [...INITIAL_CANDIDATE_START_POSITIONS];
+            STATE.currentGuessWord = "SOARE"; 
+            STATE.feedbackState = ["_", "_", "_", "_", "_"];
+            STATE.history = [];
+            STATE.gameOver = false;
+            STATE.isCalculating = false;
+
+            // Copy initial candidates into WASM heap A
+            if (Module && WASM_PTR.currentCandidatesA) {
+                 Module.HEAP32.set(STATE.currentCandidates, WASM_PTR.currentCandidatesA / 4);
+            }
+
+            updateGuessDisplay();
+            updateHistoryDisplay();
+            updateStatusDisplay(`Candidates remaining: ${STATE.currentCandidates.length}`);
+        }
+        
+        // Removed: handleExplainStrategy function
+
+        // --- WASM INITIALIZATION ---
+
+        /**
+         * Runs after the WASM file is loaded and ready.
+         */
+        function runInitialization() {
+            
+            // Check for required C++ exports
+            if (typeof Module._cpp_allocate_memory_wasm !== 'function' ||
+                typeof Module._cpp_filter_candidates_wasm !== 'function') {
+                statusText.textContent = "Error: WASM module missing required functions.";
+                return;
+            }
+            
+            // 1. Allocate Memory and Get Pointers
+            const numCandidates = INITIAL_CANDIDATE_START_POSITIONS.length; // 2315
+            const numGuesses = 12972; // Total guess list size
+            const alphabetSize = 26; // For scores vector
+
+            const ptrs = Module._cpp_allocate_memory_wasm(numCandidates, numGuesses, alphabetSize);
+            const ptrsArray = new Int32Array(Module.HEAP32.buffer, ptrs, 7);
+
+            [
+                WASM_PTR.guessWordVec,
+                WASM_PTR.scoresVec,
+                WASM_PTR.guessesFlat,
+                WASM_PTR.currentCandidatesA,
+                WASM_PTR.currentCandidatesB,
+                WASM_PTR.numCandidates,
+                WASM_PTR.numGuesses,
+            ] = ptrsArray;
+            
+            // 2. Load Initial Data
+            // Copy initial candidates (indices) into WASM heap A
+            Module.HEAP32.set(STATE.currentCandidates, WASM_PTR.currentCandidatesA / 4);
+
+            // 3. Kick off the first calculation (to get "SOARE" or "CRANE")
+            calculateBestGuess().then(() => {
+                updateGuessDisplay();
+                updateStatusDisplay();
+                console.log("WASM Initialized. Ready to solve.");
+            }).catch(e => {
+                console.error("Initial calculation failed:", e);
+                updateStatusDisplay('Error during initial calculation.');
+            });
+
+            // 4. Attach Event Listeners
+            submitButton.addEventListener('click', handleSubmitFeedback);
+            resetButton.addEventListener('click', handleResetApp);
+            // Removed: explainButton event listener
+            document.addEventListener('keydown', handleSubmitFeedback); // Enable Enter key submission
+            
+            // Initial UI Setup (Loading state)
+            updateGuessDisplay();
+            updateStatusDisplay();
+        }
+
+        // This global Module object is provided by the external 'wordle_solver.js' Emscripten file.
+        // We wait for it to be ready.
+        if (typeof Module !== 'undefined' && Module.calledRun) {
+            runInitialization();
+        } else if (typeof Module !== 'undefined') {
+            Module.onRuntimeInitialized = runInitialization;
+        } else {
+             console.error("WASM Module object not found. Ensure wordle_solver.js is loaded.");
+             statusText.textContent = "Error: WASM not found. Check Console.";
+        }
+    </script>
 </body>
 </html>
