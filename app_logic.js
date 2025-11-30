@@ -1,35 +1,39 @@
 // app_logic.js
 
-import createModule from './wordle_solver.js'; 
-let Module; 
+import createModule from './wordle_solver.js';
+let Module;
 
-createModule({
-    // 1. Pass a configuration object to the module function
-    onRuntimeInitialized: function() {
-        // 3. This function executes ONLY after HEAP views are ready!
-        initializeApp();
-    }
-}).then(wasmModule => {
-    // 2. The promise resolves when the WASM is ready, but views might be pending
-    Module = wasmModule; 
-}).catch(error => {
-    console.error("WASM Module Load Failed:", error);
-    // Handle error display
-});
-
-
-function initializeApp() {
-    // Check if HEAP32 is now available before starting memory allocation
+// --- Core Initialization Logic ---
+// Define the memory and setup function directly.
+const runInitialization = () => {
+    // 1. Check if HEAP32 is now available (requires the fix in wordle_solver.js)
     if (!Module.HEAP32) {
         console.error("FATAL: HEAP32 view still undefined after runtime initialization.");
         return;
     }
     
-    // Continue with your code that failed:
+    // 2. The original logic from initializeApp() goes here:
     initializeWasmMemory(); 
+    
+    // 3. Add other necessary calls that used to be in initializeApp(), 
+    //    like updating the UI or starting the first calculation.
+    // e.g., updateGuessDisplay();
+    // e.g., calculateBestGuess(); 
+    
+    console.log("WASM Memory initialized. App is running.");
+};
 
-    // ... rest of initializeApp ...
-}
+// --- WASM Module Loading ---
+createModule({
+    // 1. Pass a configuration object to the module function
+    onRuntimeInitialized: runInitialization
+}).then(wasmModule => {
+    // 2. The promise resolves when the WASM is ready
+    Module = wasmModule;
+}).catch(error => {
+    console.error("WASM Module Load Failed:", error);
+    // Handle error display
+});
 
 // State Variables (replicate Shiny's rv)
 const STATE = {
