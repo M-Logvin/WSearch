@@ -302,7 +302,6 @@ async function handleSubmitFeedback() {
     // 2. Check Win
     if (STATE.feedbackState.every(c => c === 'G')) {
         STATE.gameOver = true;
-        alert("Solved!");
         updateGuessDisplay();
         updateHistoryDisplay();
         return;
@@ -326,7 +325,6 @@ async function handleSubmitFeedback() {
 
     // 4. Update Candidate State
     if (remainingCount === 0) {
-        alert("Error: No words match this pattern.");
         STATE.gameOver = true;
     } else {
         // Read the new indices from Buffer B
