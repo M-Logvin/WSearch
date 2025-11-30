@@ -96,6 +96,19 @@ h2, h3 {
     100% { background-position: 0% 0%; }
 }
 
+.guess-tile.placeholder {
+    background-color: #ddd;       /* Light grey */
+    color: transparent;           /* Hide letters */
+    animation: pulse 1.5s infinite ease-in-out;
+    cursor: default;
+}
+
+@keyframes pulse {
+    0% { background-color: #e0e0e0; }
+    50% { background-color: #d0d0d0; }
+    100% { background-color: #e0e0e0; }
+}
+        
 /* Buttons */
 button {
     border: none;
