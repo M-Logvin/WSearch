@@ -381,31 +381,3 @@ function initializeWasmMemory() {
     WASM_PTR.scores = Module._malloc(nTotal * doubleSize);
     WASM_PTR.guessWordVec = Module._malloc(5 * intSize); // Temp buffer for the 5-int guess vector
 }
-
-/** Entry point after WASM is loaded. */
-function initializeApp() {
-    // Check if Module is ready (defined by Emscripten glue code)
-    if (typeof Module === 'undefined' || !Module.calledRun) {
-        console.error("WASM Module failed to load or initialize.");
-        document.getElementById('status-text').textContent = "ERROR: WASM failed to load.";
-        return;
-    }
-    
-    // Set up memory pointers and initial state
-    initializeWasmMemory();
-
-    // Set initial guess (SOARE is hardcoded start in R logic)
-    // For production, you could run calculateBestGuess() here to get the optimal start (SALET/CRANE/SOARE)
-
-    // Add event listeners
-    document.getElementById('submit-feedback').addEventListener('click', handleSubmitFeedback);
-    document.getElementById('reset-app').addEventListener('click', handleResetApp);
-    
-    // Initial UI render
-    updateGuessDisplay();
-    updateStatusDisplay();
-    updateHistoryDisplay();
-    
-    // Calculate the first guess automatically (SOARE is the fast return, let's calculate the real one)
-    calculateBestGuess();
-}
