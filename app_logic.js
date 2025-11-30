@@ -18,7 +18,9 @@ const runInitialization = () => {
     updateGuessDisplay(); 
     calculateBestGuess(); 
     updateStatusDisplay();
-    
+    // Attach event listeners to buttons
+    document.getElementById('submit-feedback')?.addEventListener('click', handleSubmitFeedback);
+    document.getElementById('reset-app')?.addEventListener('click', handleResetApp);
     console.log("WASM Memory initialized. App is running.");
 };
 
