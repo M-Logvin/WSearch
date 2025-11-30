@@ -97,48 +97,62 @@ h2, h3 {
     100% { background-position: 0% 0%; }
 }
 
-/* 🛑 NEW/MODIFIED: Style for the non-interactive loading placeholder */
 .guess-tile.initial-load {
     background-color: #d3d6da; /* Lighter gray for 'loading' */
     cursor: default;
     animation: none; /* Disable animation during load for stability */
 }
-/* 🛑 DELETED: Placeholder styles that rely on :empty::before are removed */
-
 
 /* Buttons */
 button {
+    /* Use the same core dimensions and font as the tiles for consistency */
+    width: 140px; /* Set a consistent width */
+    height: 40px; /* Set a consistent height */
+    font-weight: bold;
+    color: white;
+    margin: 4px;
+    font-size: 16px; 
+    border-radius: 12px;
     border: none;
-    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 16px;
-    font-weight: 600;
-    padding: 12px 24px; /* Same padding for all buttons */
-    min-width: 140px;   /* Ensures buttons have same width if text differs */
+    line-height: 40px; /* Center the text vertically */
     text-align: center;
+    user-select: none;
+
+    /* Add tile animation properties */
+    transition: transform 0.2s, box-shadow 0.2s, background 0.5s;
+    background-size: 200% 200%; /* Required for tileGradient animation */
+    
+    /* Default animation: gray */
+    background: linear-gradient(135deg, #787c7e, #6e7073);
+    animation: tileGradient 3s ease infinite alternate;
 }
 
+/* Hover effect */
+button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Primary Button (Use Wordle Green) */
 .btn-primary {
-    background-color: #4a90e2;
-    color: white;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, #6aaa64, #81c784); /* Green */
+    animation: tileGradient 3s ease infinite alternate;
 }
 
 .btn-primary:hover {
-    background-color: #357ab8;
-    box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+    /* Apply a different box-shadow on hover to indicate interaction */
+    box-shadow: 0 6px 10px rgba(0,0,0,0.25);
 }
 
+/* Reset Button (Use a clear warning color, like Wordle Yellow or Red) */
 #reset-app {
-    background-color: #e94e77;
-    color: white;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, #c9b458, #d1c066); /* Yellow/Warning */
+    animation: tileGradient 3s ease infinite alternate;
 }
 
 #reset-app:hover {
-    background-color: #c0355c;
-    box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 10px rgba(0,0,0,0.25);
 }
 
 /* Status Text */
@@ -176,9 +190,9 @@ hr {
             <div class="guess-tile initial-load"></div>
         </div>
         
-        <div style="margin-top: 15px;">
+        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
             <button id="submit-feedback" class="btn-primary">Submit Pattern</button>
-            <button id="reset-app" style="float:right;">Reset Game</button>
+            <button id="reset-app">Reset Game</button>
         </div>
         
         <div id="status-text" style="margin-top: 15px; font-weight: bold;">Candidates remaining: Calculating...</div>
