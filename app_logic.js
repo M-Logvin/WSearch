@@ -335,11 +335,23 @@ async function handleSubmitFeedback(event) {
 
     } else if (remainingCount === 1) {
         // ✅ Victory: Only 1 word possible
-        // We retrieve the word using the clean JS array we just updated
-        const finalWordIndex = STATE.currentCandidates[0];
+        
+        // Retrieve word index from the clean JS array (STATE.currentCandidates)
+        const finalWordIndex = STATE.currentCandidates[0]; 
+        
+        // --- ADDED DEBUGGING LOGS ---
+        console.log(`--- VICTORY DEBUG ---`);
+        console.log(`Final Word Index (from STATE.currentCandidates[0]): ${finalWordIndex}`);
+        
         const wordStartPos = finalWordIndex * 5;
+        console.log(`Word Start Position (Index * 5): ${wordStartPos}`);
+        
         const wordInts = new Int32Array(Module.HEAP32.buffer, WASM_PTR.guessesFlat + wordStartPos * 4, 5);
         
+        // Log the raw integer data read from WASM memory
+        console.log(`Raw Word Integers (wordInts): [${wordInts[0]}, ${wordInts[1]}, ${wordInts[2]}, ${wordInts[3]}, ${wordInts[4]}]`);
+        // --- END ADDED DEBUGGING LOGS ---
+
         const solvedWord = intVecToString(wordInts);
         handleVictory(solvedWord);
 
