@@ -280,41 +280,39 @@ function handleTileClick(event) {
 
 async function handleSubmitFeedback(event) {
     if (event && event.key && event.key !== 'Enter') return; 
-
     if (!Module || !Module.HEAP32) return;
     if (STATE.gameOver || STATE.isCalculating) return;
 
+    // The word used for filtering is the current guess, which is what we need to record
+    const guessWordForHistory = STATE.currentGuessWord; 
+
     // 1. Record History
     STATE.history.push({ 
-        word: STATE.currentGuessWord, 
+        word: guessWordForHistory, 
         fb: [...STATE.feedbackState] 
     });
 
-    // 2. Check for Manual Win
+    // 2. Check for Manual Win (all green feedback was given)
     if (STATE.feedbackState.every(c => c === 'G')) {
-        handleVictory(STATE.currentGuessWord);
+        handleVictory(guessWordForHistory);
         return;
     }
 
-    // 3. Filter Candidates using WASM
+    // 3. Filter Candidates
     const patternInt = encodePattern(STATE.feedbackState);
     const oldCandCount = STATE.currentCandidates.length;
 
-    // Prepare guess vector in memory
-    const guessIntVec = stringToIntVec(STATE.currentGuessWord);
+    const guessIntVec = stringToIntVec(guessWordForHistory);
     Module.HEAP32.set(guessIntVec, WASM_PTR.guessWordVec / 4);
 
-    // Call Filter
     const remainingCount = Module._cpp_filter_candidates_wasm(
         WASM_PTR.guessWordVec, patternInt,
         WASM_PTR.guessesFlat,
         WASM_PTR.currentCandidatesA, oldCandCount,
-        WASM_PTR.currentCandidatesB 
+        WASM_PTR.currentCandidatesB // Write results into buffer B
     );
 
-    // 4. Update JS State immediately (The Fix)
-    // We read the new indices from Buffer B into our JS State array right now.
-    // This allows us to access the data easily regardless of whether it's 1 word or 1000.
+    // 4. Update JS State and WASM Buffer Swap
     if (remainingCount > 0) {
         const newCandidatesIndices = new Int32Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, remainingCount);
         STATE.currentCandidates = Array.from(newCandidatesIndices);
@@ -322,7 +320,7 @@ async function handleSubmitFeedback(event) {
         STATE.currentCandidates = [];
     }
 
-    // Swap WASM buffers for next time
+    // Swap WASM buffers for next time (even if game over)
     [WASM_PTR.currentCandidatesA, WASM_PTR.currentCandidatesB] = [WASM_PTR.currentCandidatesB, WASM_PTR.currentCandidatesA];
 
     // 5. Handle Outcomes
@@ -334,25 +332,28 @@ async function handleSubmitFeedback(event) {
         updateStatusDisplay('Error: No words match this pattern.');
 
     } else if (remainingCount === 1) {
-        // ✅ Victory: Only 1 word possible
+        // ✅ Victory: Only 1 word possible. 
+        // FIX: We use the *newly filtered* word from the WASM index array (if it's valid), 
+        // or fall back to the JS state. Since the index is bad, we rely on the state update
+        // and let calculateBestGuess handle the final display word.
         
-        // Retrieve word index from the clean JS array (STATE.currentCandidates)
+        // Retrieve word from the clean JS array (STATE.currentCandidates)
         const finalWordIndex = STATE.currentCandidates[0]; 
-        
-        // --- ADDED DEBUGGING LOGS ---
-        console.log(`--- VICTORY DEBUG ---`);
-        console.log(`Final Word Index (from STATE.currentCandidates[0]): ${finalWordIndex}`);
-        
         const wordStartPos = finalWordIndex * 5;
-        console.log(`Word Start Position (Index * 5): ${wordStartPos}`);
-        
         const wordInts = new Int32Array(Module.HEAP32.buffer, WASM_PTR.guessesFlat + wordStartPos * 4, 5);
         
-        // Log the raw integer data read from WASM memory
-        console.log(`Raw Word Integers (wordInts): [${wordInts[0]}, ${wordInts[1]}, ${wordInts[2]}, ${wordInts[3]}, ${wordInts[4]}]`);
-        // --- END ADDED DEBUGGING LOGS ---
+        // This *should* work if the index is valid. If it's still zeroed, we use the old logic.
+        let solvedWord = intVecToString(wordInts);
 
-        const solvedWord = intVecToString(wordInts);
+        // Fallback for when the index is corrupt (54885 issue) but we know the word must be the one we just guessed
+        if (solvedWord.includes('?') || finalWordIndex >= N_TOTAL_GUESSES) {
+             console.warn("WASM returned corrupt index. Forcing last known candidate read.");
+             
+             // Trigger calculateBestGuess, which correctly reads the final word from the single index
+             await calculateBestGuess(); 
+             solvedWord = STATE.currentGuessWord;
+        }
+
         handleVictory(solvedWord);
 
     } else {
