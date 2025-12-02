@@ -86,7 +86,14 @@ let WASM_PTR = {
 function intVecToString(intArray) {
     let word = "";
     for (const charInt of intArray) {
-        word += LETTERS[charInt];
+        const char = LETTERS[charInt];        
+        if (char) {
+            word += char;
+        } else {
+            // If something goes wrong, print a placeholder instead of blank
+            console.warn(`Invalid character index: ${charInt}`);
+            word += "?"; 
+        }
     }
     return word;
 }
@@ -272,94 +279,89 @@ function handleTileClick(event) {
 // app_logic.js (Updated sections for handleSubmitFeedback and handleResetApp)
 
 async function handleSubmitFeedback(event) {
-    // Check if event is passed (from keyboard) and if it's the Enter key
     if (event && event.key && event.key !== 'Enter') return; 
 
-    // Ensure WASM Module is fully ready (safety check, though initialized in runInitialization)
-    if (!Module || !Module.HEAP32) {
-        console.warn("WASM not fully initialized. Blocking submit attempt.");
-        return; 
-    }
-
+    if (!Module || !Module.HEAP32) return;
     if (STATE.gameOver || STATE.isCalculating) return;
 
     // 1. Record History
     STATE.history.push({ 
         word: STATE.currentGuessWord, 
-        fb: [...STATE.feedbackState] // Copy the array
+        fb: [...STATE.feedbackState] 
     });
 
-    // 2. Check Win (User marked all Green)
+    // 2. Check for Manual Win
     if (STATE.feedbackState.every(c => c === 'G')) {
-        STATE.gameOver = true;
-        updateGuessDisplay();
-        updateHistoryDisplay();
-        updateStatusDisplay('Solved!'); 
+        handleVictory(STATE.currentGuessWord);
         return;
     }
 
-    // 3. Filter Candidates
+    // 3. Filter Candidates using WASM
     const patternInt = encodePattern(STATE.feedbackState);
     const oldCandCount = STATE.currentCandidates.length;
 
-    // Allocate memory for the current guess word in 5-int form
+    // Prepare guess vector in memory
     const guessIntVec = stringToIntVec(STATE.currentGuessWord);
-    Module.HEAP32.set(guessIntVec, WASM_PTR.guessWordVec / 4); // /4 because HEAP32 works with 4-byte offsets
+    Module.HEAP32.set(guessIntVec, WASM_PTR.guessWordVec / 4);
 
-    // Call C++: cpp_filter_candidates_wasm(guess_ptr, pattern, all_guesses_ptr, old_cands_ptr, n_old, new_cands_ptr)
+    // Call Filter
     const remainingCount = Module._cpp_filter_candidates_wasm(
         WASM_PTR.guessWordVec, patternInt,
         WASM_PTR.guessesFlat,
         WASM_PTR.currentCandidatesA, oldCandCount,
-        WASM_PTR.currentCandidatesB // Write results into buffer B
+        WASM_PTR.currentCandidatesB 
     );
 
-    // 4. Update Candidate State and Handle Game End Conditions
+    // 4. Update JS State immediately (The Fix)
+    // We read the new indices from Buffer B into our JS State array right now.
+    // This allows us to access the data easily regardless of whether it's 1 word or 1000.
+    if (remainingCount > 0) {
+        const newCandidatesIndices = new Int32Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, remainingCount);
+        STATE.currentCandidates = Array.from(newCandidatesIndices);
+    } else {
+        STATE.currentCandidates = [];
+    }
 
+    // Swap WASM buffers for next time
+    [WASM_PTR.currentCandidatesA, WASM_PTR.currentCandidatesB] = [WASM_PTR.currentCandidatesB, WASM_PTR.currentCandidatesA];
+
+    // 5. Handle Outcomes
     if (remainingCount === 0) {
-        // 🛑 ERROR STATE (0 words left)
+        // 🛑 Error: No words left
         STATE.gameOver = true;
-        STATE.currentGuessWord = "ERROR"; // Identifier for the display logic
-        STATE.feedbackState = ["E", "R", "R", "O", "R"]; // Custom color key for Red (We will map 'E', 'R', 'O' to red in updateGuessDisplay)
+        STATE.currentGuessWord = "ERROR"; 
+        STATE.feedbackState = ["E", "R", "R", "O", "R"];
         updateStatusDisplay('Error: No words match this pattern.');
 
     } else if (remainingCount === 1) {
-        // ✅ SUCCESS STATE (1 word left)
-        STATE.gameOver = true;
-        
-        // Read the final word to update STATE.currentGuessWord
-        const finalWordIndex = new Int32Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, 1)[0];
+        // ✅ Victory: Only 1 word possible
+        // We retrieve the word using the clean JS array we just updated
+        const finalWordIndex = STATE.currentCandidates[0];
         const wordStartPos = finalWordIndex * 5;
         const wordInts = new Int32Array(Module.HEAP32.buffer, WASM_PTR.guessesFlat + wordStartPos * 4, 5);
-        STATE.currentGuessWord = intVecToString(wordInts);
         
-        // Set feedback state to Green for the visual effect
-        STATE.feedbackState = ["G", "G", "G", "G", "G"]; 
-        updateStatusDisplay(`Solved! The word is: ${STATE.currentGuessWord}`);
+        const solvedWord = intVecToString(wordInts);
+        handleVictory(solvedWord);
 
     } else {
-        // 🔄 CONTINUE STATE (2+ words left)
-        // Read the new indices from Buffer B
-        const newCandidatesIndices = new Int32Array(Module.HEAP32.buffer, WASM_PTR.currentCandidatesB, remainingCount);
-        STATE.currentCandidates = Array.from(newCandidatesIndices);
-        
-        // Swap buffers A and B for the next filter/score call
-        [WASM_PTR.currentCandidatesA, WASM_PTR.currentCandidatesB] = [WASM_PTR.currentCandidatesB, WASM_PTR.currentCandidatesA];
-
-        // 5. Calculate Next Guess
+        // 🔄 Continue: Calculate next best guess
+        STATE.feedbackState = ["_", "_", "_", "_", "_"]; // Reset colors
         await calculateBestGuess();
-        
-        // Reset UI State (Only if continuing)
-        STATE.feedbackState = ["_", "_", "_", "_", "_"];
     }
 
-    // 6. Update Displays (Runs regardless of game over state)
+    // 6. Render Updates
     updateGuessDisplay();
     updateHistoryDisplay();
-    // If a custom message was set above, updateStatusDisplay() without arguments will use it.
-    if (!STATE.gameOver) {
-        updateStatusDisplay();
-    }
+    if (!STATE.gameOver) updateStatusDisplay();
+}
+
+function handleVictory(word) {
+    STATE.gameOver = true;
+    STATE.currentGuessWord = word;
+    STATE.feedbackState = ["G", "G", "G", "G", "G"];
+    updateGuessDisplay();
+    updateHistoryDisplay();
+    updateStatusDisplay(`Solved! The word is: ${word}`);
 }
 
 function handleResetApp() {
